@@ -191,6 +191,25 @@ class Tree234:
         return node.keys[0] 
 
         
+    def inorder(self):
+        out = []
+        def walk(n):
+            for i, k in enumerate(n.keys):
+                if not n.leaf:
+                    walk(n.children[i])
+                out.append(k)
+            if not n.leaf:
+                walk(n.children[-1])
+        walk(self.root)
+        return out
+
+    def height(self):
+        h, n = 1, self.root
+        while not n.leaf:
+            n, h = n.children[0], h + 1
+        return h
+
+
 def validate(node):
     assert node.keys == sorted(node.keys), f"desordenado: {node.keys}"
     assert len(node.keys) <= 3, f"overflow: {node.keys}"

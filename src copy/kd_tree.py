@@ -1,8 +1,9 @@
 import math
 
 class Node:
-    def __init__(self, point):
+    def __init__(self, point, data=None):
         self.point = point   # tupla (x, y)
+        self.data = data     # dados extras (ex.: nome do restaurante)
         self.left = None     # subárvore esquerda: menor no eixo do nível
         self.right = None    # subárvore direita: maior ou igual
 
@@ -16,9 +17,9 @@ class KDTree:
     # INSERÇÃO
     # ==========================================
 
-    def insert(self, point):
+    def insert(self, point, data=None):
         if self.root is None:              # árvore vazia: vira a raiz
-            self.root = Node(point)
+            self.root = Node(point, data)
             self.size += 1
             return True
 
@@ -32,13 +33,13 @@ class KDTree:
             axis = depth % self.k          # nível par: x, nível ímpar: y
             if point[axis] < current.point[axis]:
                 if current.left is None:   # achou o lugar vazio
-                    current.left = Node(point)
+                    current.left = Node(point, data)
                     self.size += 1
                     return True
                 next_node = current.left
             else:                          # maior ou igual: direita
                 if current.right is None:
-                    current.right = Node(point)
+                    current.right = Node(point, data)
                     self.size += 1
                     return True
                 next_node = current.right
@@ -172,6 +173,40 @@ class KDTree:
         return found
 
     # ==========================================
+    # N VIZINHOS MAIS PRÓXIMOS
+    # ==========================================
+
+    def k_nearest(self, target, n=3):
+        best = []                                  # [(distância, nó)] ordenada, no máximo n
+
+        def visit(node, depth):
+            if node is None:
+                return
+            best.append((math.dist(target, node.point), node))
+            best.sort(key=lambda t: t[0])
+            del best[n:]
+            axis = depth % self.k
+            if target[axis] < node.point[axis]:
+                near, far = node.left, node.right
+            else:
+                near, far = node.right, node.left
+            visit(near, depth + 1)
+            # só cruza o corte se ainda faltam vizinhos ou o círculo atravessa o corte
+            if len(best) < n or abs(target[axis] - node.point[axis]) <= best[-1][0]:
+                visit(far, depth + 1)
+
+        visit(self.root, 0)
+        return [(node, d) for d, node in best]
+
+    def nodes(self):
+        out = []
+        def walk(node):
+            if node:
+                walk(node.left); out.append(node); walk(node.right)
+        walk(self.root)
+        return out
+
+    # ==========================================
     # MENOR VALOR NUM EIXO (USADO NA EXCLUSÃO)
     # ==========================================
 
@@ -209,12 +244,12 @@ class KDTree:
             if node.right is not None:
                 # substituto: menor valor no eixo do nó, na subárvore direita
                 sub = self._minimum(node.right, axis, depth + 1)
-                node.point = sub.point
+                node.point, node.data = sub.point, sub.data
                 node.right = self._delete(node.right, sub.point, depth + 1)
             elif node.left is not None:
                 # sem direita: usa o menor da esquerda, e a esquerda vira a direita
                 sub = self._minimum(node.left, axis, depth + 1)
-                node.point = sub.point
+                node.point, node.data = sub.point, sub.data
                 node.right = self._delete(node.left, sub.point, depth + 1)
                 node.left = None
             else:
