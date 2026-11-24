@@ -69,7 +69,9 @@ class KDTree:
     # CONSTRUÇÃO BALANCEADA (MEDIANA)
     # ==========================================
 
-    def build(self, points):
+    def build(self, points, data=None):
+        """data (opcional): dicionário ponto -> dados extras, guardados nos nós."""
+        self._data = data or {}
         unique = list(dict.fromkeys(points))   # tira pontos idênticos repetidos
         self.root = self._build(unique, 0)
         self.size = len(unique)
@@ -87,7 +89,7 @@ class KDTree:
         while mid > 0 and points[mid - 1][axis] == points[mid][axis]:
             mid -= 1
 
-        node = Node(points[mid])
+        node = Node(points[mid], self._data.get(points[mid]))
         node.left = self._build(points[:mid], depth + 1)
         node.right = self._build(points[mid + 1:], depth + 1)
         return node
